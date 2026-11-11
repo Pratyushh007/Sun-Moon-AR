@@ -1,0 +1,14 @@
+{
+  "name": "sun-and-moon-ar-finder",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node tests/mathx.test.js"
+  },
+  "dependencies": {
+    "geomagnetism": "^0.2.0",
+    "suncalc": "^1.9.0"
+  }
+}
+

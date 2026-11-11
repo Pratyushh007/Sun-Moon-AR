@@ -1,0 +1,18 @@
+{
+  "name": "Sun & Moon AR Finder",
+  "short_name": "SunMoon AR",
+  "description": "Mobile-first AR sky finder for locating the Sun and Moon.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0b1020",
+  "theme_color": "#0b1020",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
+
