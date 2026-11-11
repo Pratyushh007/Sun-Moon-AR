@@ -1,25 +1,29 @@
-const CACHE_NAME = 'sun-moon-ar-v2';
+const CACHE_NAME = 'sun-moon-ar-v3';
 const ASSETS = [
   './',
   './index.html',
   './manifest.webmanifest',
   './icon.svg',
-  './js/main.js',
-  './js/sensors.js',
+  './js/main.js?v=3',
+  './js/sensors.js?v=3',
   './js/mathx.js',
   './js/ephemeris.js',
   './js/declination.js',
   './js/projection.js',
   './js/overlay.js',
   './js/calibration.js',
-  './js/ui.js',
+  './js/ui.js?v=3',
   './js/vendor/suncalc.js',
   './js/vendor/geomagnetism.js',
 ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
+    caches.open(CACHE_NAME).then((cache) =>
+      Promise.all(
+        ASSETS.map((url) => cache.add(new Request(url, { cache: 'reload' })))
+      )
+    )
   );
   self.skipWaiting();
 });
@@ -37,8 +41,14 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
+  const reqUrl = new URL(event.request.url);
+  const networkPromise =
+    reqUrl.origin === self.location.origin
+      ? fetch(event.request.url, { cache: 'no-cache', credentials: 'same-origin' })
+      : fetch(event.request);
+
   event.respondWith(
-    fetch(event.request)
+    networkPromise
       .then((res) => {
         if (res && res.ok) {
           const copy = res.clone();
@@ -49,4 +59,3 @@ self.addEventListener('fetch', (event) => {
       .catch(() => caches.match(event.request))
   );
 });
-

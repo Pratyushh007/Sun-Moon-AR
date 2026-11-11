@@ -109,22 +109,33 @@ export class SensorManager {
       videoEl.srcObject = stream;
 
       await new Promise((resolve, reject) => {
+        let timer = null;
+        const cleanup = () => {
+          if (timer !== null) {
+            clearTimeout(timer);
+            timer = null;
+          }
+          videoEl.removeEventListener('loadedmetadata', onLoaded);
+          videoEl.removeEventListener('loadeddata', onLoaded);
+          videoEl.removeEventListener('error', onError);
+        };
         const onLoaded = () => {
           cleanup();
           resolve();
         };
-        const onError = (e) => {
+        const onError = () => {
           cleanup();
           reject(new Error('Camera video failed to load.'));
-        };
-        const cleanup = () => {
-          videoEl.removeEventListener('loadedmetadata', onLoaded);
-          videoEl.removeEventListener('error', onError);
         };
         if (videoEl.readyState >= 1) {
           resolve();
         } else {
+          timer = setTimeout(() => {
+            cleanup();
+            resolve();
+          }, 4000);
           videoEl.addEventListener('loadedmetadata', onLoaded);
+          videoEl.addEventListener('loadeddata', onLoaded);
           videoEl.addEventListener('error', onError);
         }
       });

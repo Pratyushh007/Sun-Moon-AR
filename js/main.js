@@ -18,8 +18,8 @@ import {
   drawPathArc,
   drawTargetMarker,
 } from './overlay.js';
-import { SensorManager } from './sensors.js';
-import { UIController } from './ui.js';
+import { SensorManager } from './sensors.js?v=3';
+import { UIController } from './ui.js?v=3';
 
 // Tunables (Section 12.4)
 const DEFAULT_FOV_LONG = 65;
@@ -76,41 +76,40 @@ const ui = new UIController({
   async onStart() {
     ui.hidePermissionError();
     try {
-      // 1. Motion / orientation permission
+      // 1. Motion / orientation permission (must stay first in user-gesture chain for iOS)
       await sensors.requestOrientationPermission();
       // 2. Camera
       await sensors.startCamera(video);
-    } catch (err) {
-      ui.showPermissionError(err.message);
-      return;
-    }
 
-    // Attempt portrait lock where allowed (Section 2)
-    try {
-      await screen.orientation?.lock?.('portrait');
-    } catch {
-      // Rotation is handled via screen.orientation.angle (Section 5.4)
-    }
-
-    // 3. Location
-    sensors.startLocation(
-      (pos) => {
-        state.location = { lat: pos.lat, lon: pos.lon, label: 'GPS', isDefault: false };
-        updateEphemeris(true);
-      },
-      (err) => {
-        state.orientationWarning = err.message;
-        refreshWarningBanner();
+      // Attempt portrait lock where allowed (non-blocking)
+      try {
+        screen.orientation?.lock?.('portrait')?.catch?.(() => {});
+      } catch {
+        // Rotation is handled via screen.orientation.angle (Section 5.4)
       }
-    );
 
-    sensors.startOrientation();
-    state.started = true;
-    ui.enterMainView();
-    ui.setActiveMode(state.mode);
-    updateEphemeris(true);
-    refreshWarningBanner();
-    startLoop();
+      // 3. Location
+      sensors.startLocation(
+        (pos) => {
+          state.location = { lat: pos.lat, lon: pos.lon, label: 'GPS', isDefault: false };
+          updateEphemeris(true);
+        },
+        (err) => {
+          state.orientationWarning = err.message;
+          refreshWarningBanner();
+        }
+      );
+
+      sensors.startOrientation();
+      state.started = true;
+      ui.enterMainView();
+      ui.setActiveMode(state.mode);
+      updateEphemeris(true);
+      refreshWarningBanner();
+      startLoop();
+    } catch (err) {
+      ui.showPermissionError(err?.message || 'Could not start AR Finder.');
+    }
   },
   onModeChange(mode) {
     state.mode = mode;
@@ -403,10 +402,21 @@ document.addEventListener('visibilitychange', () => {
 
 // Register PWA service worker (M5)
 if ('serviceWorker' in navigator) {
+  const hadController = Boolean(navigator.serviceWorker.controller);
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (hadController && !reloaded) {
+      reloaded = true;
+      window.location.reload();
+    }
+  });
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(() => {
-      // Service worker requires HTTPS or localhost
-    });
+    navigator.serviceWorker
+      .register('./sw.js')
+      .then((reg) => reg.update?.().catch(() => {}))
+      .catch(() => {
+        // Service worker requires HTTPS or localhost
+      });
   });
 }
 
