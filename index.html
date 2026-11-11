@@ -10,442 +10,367 @@
   <style>
     :root {
       --bg: #0b1020;
-      --panel: rgba(11, 16, 32, 0.82);
-      --border: rgba(255, 255, 255, 0.16);
+      --panel: rgba(11, 16, 32, 0.80);
+      --border: rgba(255, 255, 255, 0.14);
       --text: #f8fafc;
-      --muted: #cbd5e1;
+      --muted: #94a3b8;
       --sun: #ffd54f;
       --moon: #90caf9;
       --danger: #ef4444;
       --warn: #f59e0b;
       --ok: #22c55e;
+      --radius-sm: 10px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
     }
 
-    * {
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
     html, body {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100%;
+      margin: 0; padding: 0;
+      width: 100%; height: 100%;
       overflow: hidden;
       background: #000;
       color: var(--text);
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
+    /* ── Camera + canvas ── */
     #camera-video {
-      position: fixed;
-      inset: 0;
-      width: 100%;
-      height: 100%;
+      position: fixed; inset: 0;
+      width: 100%; height: 100%;
       object-fit: cover;
-      z-index: 1;
-      background: #000;
+      z-index: 1; background: #000;
     }
-
     #overlay-canvas {
-      position: fixed;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 2;
-      touch-action: manipulation;
+      position: fixed; inset: 0;
+      width: 100%; height: 100%;
+      z-index: 2; touch-action: manipulation;
     }
 
-    /* Landing screen */
+    /* ═══════════════════════════════
+       LANDING SCREEN
+    ═══════════════════════════════ */
     #landing {
-      position: fixed;
-      inset: 0;
-      z-index: 20;
-      background: radial-gradient(circle at top, #172554, #090d1a 70%);
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      padding: 24px;
-      text-align: center;
-      overflow-y: auto;
+      position: fixed; inset: 0; z-index: 20;
+      background: radial-gradient(circle at 30% 20%, #172554, #090d1a 70%);
+      display: flex; flex-direction: column;
+      justify-content: center; align-items: center;
+      padding: 24px; text-align: center; overflow-y: auto;
     }
-
-    #landing[hidden] {
-      display: none;
-    }
+    #landing[hidden] { display: none; }
 
     .landing-card {
-      max-width: 440px;
-      width: 100%;
-      background: rgba(15, 23, 42, 0.88);
+      max-width: 400px; width: 100%;
+      background: rgba(15, 23, 42, 0.90);
       border: 1px solid var(--border);
-      border-radius: 18px;
-      padding: 24px;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.55);
+      border-radius: var(--radius-lg);
+      padding: 28px 24px;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+    }
+
+    .landing-icon {
+      width: 64px; height: 64px; margin: 0 auto 16px;
+      background: linear-gradient(135deg, #f59e0b22, #fbbf2411);
+      border: 1px solid rgba(251,191,36,0.3);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2rem;
     }
 
     .landing-card h1 {
-      margin: 0 0 10px;
-      font-size: 1.6rem;
+      margin: 0 0 8px; font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em;
     }
-
     .landing-card p {
-      margin: 0 0 14px;
-      color: var(--muted);
-      line-height: 1.45;
-      font-size: 0.96rem;
+      margin: 0 0 20px; color: var(--muted); line-height: 1.5; font-size: 0.93rem;
     }
 
     .notice {
-      text-align: left;
-      font-size: 0.88rem;
-      line-height: 1.4;
-      padding: 12px;
-      border-radius: 10px;
-      margin-bottom: 12px;
-      border: 1px solid var(--border);
+      text-align: left; font-size: 0.84rem; line-height: 1.4;
+      padding: 10px 12px; border-radius: var(--radius-sm);
+      margin-bottom: 10px; border: 1px solid var(--border);
     }
-
     .notice.safety {
-      background: rgba(245, 158, 11, 0.14);
-      border-color: rgba(245, 158, 11, 0.45);
-      color: #fef3c7;
+      background: rgba(245,158,11,0.10); border-color: rgba(245,158,11,0.35); color: #fef3c7;
     }
-
     .notice.privacy {
-      background: rgba(56, 189, 248, 0.12);
-      border-color: rgba(56, 189, 248, 0.35);
-      color: #e0f2fe;
+      background: rgba(56,189,248,0.08); border-color: rgba(56,189,248,0.28); color: #e0f2fe;
     }
 
     .btn-primary {
-      width: 100%;
-      min-height: 52px;
-      border: none;
-      border-radius: 12px;
+      width: 100%; min-height: 52px; border: none;
+      border-radius: var(--radius-md);
       background: linear-gradient(135deg, #f59e0b, #fbbf24);
-      color: #0b1020;
-      font-size: 1.08rem;
-      font-weight: 700;
-      cursor: pointer;
-      margin-top: 6px;
+      color: #0b1020; font-size: 1rem; font-weight: 700;
+      cursor: pointer; margin-top: 8px; letter-spacing: 0.01em;
     }
-
     .btn-secondary {
-      min-height: 44px;
-      padding: 8px 14px;
-      border-radius: 10px;
+      min-height: 40px; padding: 6px 14px;
+      border-radius: var(--radius-sm);
       border: 1px solid var(--border);
-      background: rgba(30, 41, 59, 0.9);
-      color: var(--text);
-      font-size: 0.9rem;
-      font-weight: 600;
-      cursor: pointer;
+      background: rgba(30,41,59,0.9);
+      color: var(--text); font-size: 0.88rem; font-weight: 600; cursor: pointer;
     }
 
     #permission-error {
-      margin-top: 14px;
-      padding: 12px;
-      border-radius: 10px;
-      background: rgba(239, 68, 68, 0.18);
-      border: 1px solid rgba(239, 68, 68, 0.55);
-      color: #fee2e2;
-      font-size: 0.9rem;
+      margin-top: 12px; padding: 12px; border-radius: var(--radius-sm);
+      background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.45); color: #fee2e2;
+      font-size: 0.88rem;
     }
+    #permission-error .btn-secondary { margin-top: 8px; width: 100%; }
 
-    #permission-error .btn-secondary {
-      margin-top: 10px;
-      width: 100%;
-    }
-
-    /* HUD */
+    /* ═══════════════════════════════
+       HUD WRAPPER
+    ═══════════════════════════════ */
     #hud {
-      position: fixed;
-      inset: 0;
-      z-index: 10;
+      position: fixed; inset: 0; z-index: 10;
       pointer-events: none;
-      display: flex;
-      flex-direction: column;
+      display: flex; flex-direction: column;
       justify-content: space-between;
       padding: env(safe-area-inset-top, 10px) 10px env(safe-area-inset-bottom, 10px);
+      gap: 0;
     }
+    #hud[hidden] { display: none; }
 
-    #hud[hidden] {
-      display: none;
-    }
-
-    .hud-top, .hud-bottom {
+    /* ── Top bar ── */
+    #top-bar {
       pointer-events: auto;
+      display: flex; align-items: center;
+      justify-content: space-between; gap: 8px;
       background: var(--panel);
-      backdrop-filter: blur(8px);
+      backdrop-filter: blur(12px) saturate(1.4);
       border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 10px 12px;
+      border-radius: var(--radius-md);
+      padding: 8px 10px;
     }
 
-    .top-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .title-group {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
+    .title-group { display: flex; flex-direction: column; gap: 1px; }
 
     #app-title {
-      font-weight: 700;
-      font-size: 0.98rem;
-      user-select: none;
+      font-weight: 700; font-size: 0.9rem;
+      letter-spacing: -0.01em; user-select: none;
     }
+    .meta-line { font-size: 0.72rem; color: var(--muted); }
 
-    .meta-line {
-      font-size: 0.78rem;
-      color: var(--muted);
-    }
-
-    .controls-row {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      margin-top: 8px;
-      flex-wrap: wrap;
-    }
-
-    .seg-group {
-      display: inline-flex;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      overflow: hidden;
-    }
-
-    .seg-btn, .hud-btn {
-      min-height: 44px;
-      padding: 0 12px;
-      border: none;
-      background: transparent;
-      color: var(--text);
-      font-size: 0.86rem;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    .seg-btn.active {
-      background: rgba(255, 255, 255, 0.22);
-    }
-
-    .hud-btn {
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      background: rgba(255, 255, 255, 0.08);
-    }
-
-    .hud-btn.active {
-      background: #f59e0b;
-      color: #0b1020;
-      border-color: #fbbf24;
+    .top-right {
+      display: flex; align-items: center; gap: 6px; flex-shrink: 0;
     }
 
     .pill {
-      font-size: 0.75rem;
-      font-weight: 700;
-      padding: 4px 8px;
+      font-size: 0.7rem; font-weight: 700;
+      padding: 3px 8px; border-radius: 999px;
+      border: 1px solid var(--border); white-space: nowrap;
+    }
+    .pill.ok  { background: rgba(34,197,94,0.18);  border-color: rgba(34,197,94,0.45);  color: #bbf7d0; }
+    .pill.warn{ background: rgba(245,158,11,0.22); border-color: rgba(245,158,11,0.55); color: #fef3c7; }
+
+    /* icon button */
+    .icon-btn {
+      width: 36px; height: 36px;
+      display: flex; align-items: center; justify-content: center;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: rgba(255,255,255,0.07);
+      color: var(--text); cursor: pointer; font-size: 1.1rem;
+      pointer-events: auto;
+    }
+    .icon-btn.active { background: #f59e0b; color: #0b1020; border-color: #fbbf24; }
+
+    /* ── Warning chip (non-blocking, sits below top bar) ── */
+    #warning-chip {
+      pointer-events: none;
+      display: flex; align-items: flex-start; gap: 6px;
+      background: rgba(120,53,15,0.88);
+      border: 1px solid rgba(245,158,11,0.55);
+      border-radius: var(--radius-sm);
+      padding: 7px 10px;
+      font-size: 0.78rem; color: #fef3c7; line-height: 1.35;
+      margin-top: 6px;
+      backdrop-filter: blur(8px);
+    }
+    #warning-chip[hidden] { display: none; }
+
+    /* ── Calibrate banner (inline, below warning) ── */
+    #calibrate-banner {
+      pointer-events: auto;
+      display: flex; align-items: center; gap: 8px;
+      background: var(--panel);
+      border: 1px solid rgba(251,191,36,0.6);
+      border-radius: var(--radius-sm);
+      padding: 7px 10px;
+      font-size: 0.82rem; margin-top: 6px;
+      backdrop-filter: blur(8px);
+    }
+    #calibrate-banner[hidden] { display: none; }
+    #calibrate-banner select {
+      flex: 1; min-height: 36px; padding: 4px 8px;
+      border-radius: 8px; border: 1px solid var(--border);
+      background: #1e293b; color: var(--text); font-size: 0.85rem;
+    }
+
+    /* ── Mode pill (floating center-bottom) ── */
+    #mode-pill {
+      pointer-events: auto;
+      position: absolute; bottom: calc(env(safe-area-inset-bottom, 10px) + 136px);
+      left: 50%; transform: translateX(-50%);
+      display: inline-flex; gap: 0;
+      background: var(--panel);
+      backdrop-filter: blur(12px) saturate(1.4);
+      border: 1px solid var(--border);
       border-radius: 999px;
-      border: 1px solid var(--border);
+      overflow: hidden;
     }
-
-    .pill.ok {
-      background: rgba(34, 197, 94, 0.2);
-      border-color: rgba(34, 197, 94, 0.5);
-      color: #bbf7d0;
+    .seg-btn {
+      min-height: 40px; padding: 0 16px;
+      border: none; background: transparent;
+      color: var(--muted); font-size: 0.84rem; font-weight: 600;
+      cursor: pointer; transition: color 0.15s, background 0.15s;
     }
-
-    .pill.warn {
-      background: rgba(245, 158, 11, 0.25);
-      border-color: rgba(245, 158, 11, 0.6);
-      color: #fef3c7;
+    .seg-btn.active {
+      background: rgba(255,255,255,0.18); color: var(--text);
     }
+    .seg-btn[data-mode="sun"].active  { color: var(--sun); }
+    .seg-btn[data-mode="moon"].active { color: var(--moon); }
 
-    .banner-stack {
+    /* ── Bottom panel ── */
+    #bottom-panel {
       pointer-events: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      margin: 6px 0;
-    }
-
-    .banner {
       background: var(--panel);
+      backdrop-filter: blur(12px) saturate(1.4);
       border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 8px 12px;
-      font-size: 0.85rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
+      border-radius: var(--radius-md);
+      overflow: hidden;
     }
 
-    .banner.warn {
-      border-color: rgba(245, 158, 11, 0.65);
-      background: rgba(120, 53, 15, 0.85);
-      color: #fef3c7;
+    /* Guidance row — always visible */
+    #guidance-row {
+      padding: 10px 12px 4px;
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
     }
-
-    .banner.cal {
-      border-color: rgba(251, 191, 36, 0.8);
-      background: rgba(30, 41, 59, 0.92);
-    }
-
-    .hud-bottom {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
     #guidance-text {
-      font-size: 1rem;
-      font-weight: 700;
-      text-align: center;
-      color: #ffffff;
+      flex: 1; font-size: 0.95rem; font-weight: 700; color: #fff;
+      line-height: 1.25;
     }
+    #drawer-toggle {
+      flex-shrink: 0; width: 32px; height: 32px;
+      display: flex; align-items: center; justify-content: center;
+      border: 1px solid var(--border); border-radius: 8px;
+      background: rgba(255,255,255,0.06); color: var(--muted);
+      cursor: pointer; font-size: 0.8rem;
+      transition: transform 0.25s;
+    }
+    #drawer-toggle.open { transform: rotate(180deg); }
 
+    /* Drawer content */
+    #drawer-content {
+      max-height: 0; overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+    #drawer-content.open { max-height: 260px; }
+
+    .drawer-inner {
+      padding: 4px 12px 10px;
+      display: flex; flex-direction: column; gap: 6px;
+    }
     .readout-line {
-      font-size: 0.8rem;
-      color: var(--muted);
-      text-align: center;
+      font-size: 0.75rem; color: var(--muted); text-align: center;
     }
-
     .slider-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 0.82rem;
+      display: flex; align-items: center; gap: 8px; font-size: 0.8rem;
     }
+    .slider-row label { color: var(--muted); white-space: nowrap; }
+    .slider-row input[type="range"] { flex: 1; min-height: 36px; }
+    .slider-row .btn-secondary { flex-shrink: 0; }
 
-    .slider-row input[type="range"] {
-      flex: 1;
-      min-height: 36px;
+    /* Manual heading/pitch bar (shown when no motion sensors) */
+    #manual-sensor-bar {
+      padding: 6px 12px 10px;
+      border-top: 1px solid var(--border);
+      display: flex; flex-direction: column; gap: 4px;
     }
-
-    .manual-bar {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 8px 12px;
-      pointer-events: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .manual-bar[hidden] {
-      display: none;
-    }
+    #manual-sensor-bar[hidden] { display: none; }
+    .manual-label { font-size: 0.72rem; color: var(--warn); font-weight: 600; }
 
     /* Debug panel */
     #debug-panel {
       pointer-events: auto;
-      background: rgba(0, 0, 0, 0.85);
-      border: 1px solid rgba(255, 255, 255, 0.25);
-      border-radius: 8px;
-      padding: 8px;
+      background: rgba(0,0,0,0.88);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 8px; padding: 7px 9px;
       font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-      font-size: 0.72rem;
-      white-space: pre-wrap;
-      color: #86efac;
+      font-size: 0.68rem; white-space: pre-wrap; color: #86efac;
+      margin-top: 4px;
     }
 
-    /* Settings modal */
+    /* ═══════════════════════════════
+       SETTINGS PANEL (slide-up sheet)
+    ═══════════════════════════════ */
     #settings-modal {
-      position: fixed;
-      inset: 0;
-      z-index: 30;
-      background: rgba(0, 0, 0, 0.68);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
+      position: fixed; inset: 0; z-index: 30;
+      background: rgba(0,0,0,0.60);
+      display: flex; align-items: flex-end; justify-content: center;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
     }
+    #settings-modal[hidden] { display: none; }
 
-    #settings-modal[hidden] {
-      display: none;
-    }
-
-    .modal-card {
-      width: 100%;
-      max-width: 440px;
-      max-height: 90vh;
-      overflow-y: auto;
+    .modal-sheet {
+      width: 100%; max-width: 480px;
+      max-height: 88vh; overflow-y: auto;
       background: #0f172a;
       border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 18px;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+      padding: 0 0 24px;
+      display: flex; flex-direction: column; gap: 0;
+    }
+
+    .sheet-handle {
+      width: 36px; height: 4px; border-radius: 2px;
+      background: rgba(255,255,255,0.22);
+      margin: 10px auto 0; flex-shrink: 0;
     }
 
     .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px 18px 8px;
     }
+    .modal-header h2 { margin: 0; font-size: 1.1rem; font-weight: 700; }
 
-    .modal-header h2 {
-      margin: 0;
-      font-size: 1.15rem;
-    }
+    .sheet-body { padding: 0 18px; display: flex; flex-direction: column; gap: 0; }
 
     .setting-block {
-      border-top: 1px solid var(--border);
-      padding-top: 10px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      font-size: 0.88rem;
+      border-top: 1px solid var(--border); padding: 12px 0;
+      display: flex; flex-direction: column; gap: 8px; font-size: 0.88rem;
     }
+    .setting-block strong { font-size: 0.9rem; }
 
     .input-row {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      flex-wrap: wrap;
+      display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
     }
-
     .input-row input[type="number"],
     .input-row select {
-      flex: 1;
-      min-height: 44px;
-      padding: 6px 10px;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      background: #1e293b;
-      color: var(--text);
-      font-size: 0.9rem;
+      flex: 1; min-height: 42px; padding: 6px 10px;
+      border-radius: 8px; border: 1px solid var(--border);
+      background: #1e293b; color: var(--text); font-size: 0.88rem;
     }
 
-    .hint-small {
-      font-size: 0.78rem;
-      color: var(--muted);
-    }
+    .hint-small { font-size: 0.76rem; color: var(--muted); }
 
     label.toggle-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      min-height: 44px;
-      cursor: pointer;
+      display: flex; align-items: center;
+      justify-content: space-between; min-height: 42px; cursor: pointer;
     }
+    label.toggle-row input { width: 20px; height: 20px; }
 
-    label.toggle-row input {
-      width: 22px;
-      height: 22px;
+    /* Calibrate button in settings */
+    #settings-calibrate-btn {
+      width: 100%; min-height: 42px;
+      border: 1px solid rgba(251,191,36,0.5);
+      border-radius: var(--radius-sm);
+      background: rgba(251,191,36,0.1);
+      color: #fef3c7; font-size: 0.9rem; font-weight: 600; cursor: pointer;
+    }
+    #settings-calibrate-btn.active {
+      background: rgba(251,191,36,0.25); border-color: #fbbf24;
     }
   </style>
 </head>
@@ -453,18 +378,19 @@
   <video id="camera-video" autoplay muted playsinline></video>
   <canvas id="overlay-canvas"></canvas>
 
-  <!-- Landing screen (Section 7.1 & 11) -->
+  <!-- ═══ LANDING ═══ -->
   <section id="landing">
     <div class="landing-card">
-      <h1>Sun &amp; Moon AR Finder</h1>
-      <p>Point your phone at the sky to locate the Sun and Moon in live AR, even behind clouds or below the horizon.</p>
+      <div class="landing-icon">🌞</div>
+      <h1>Sun &amp; Moon AR</h1>
+      <p>Point your phone at the sky to find the Sun and Moon in real-time AR — even behind clouds.</p>
 
       <div class="notice safety">
-        <strong>Safety warning:</strong> Never look directly at the Sun, with or without the phone screen showing it through the camera for long periods; do not use binoculars or telescopes.
+        <strong>⚠ Safety:</strong> Never look directly at the Sun through the camera for extended periods.
       </div>
 
       <div class="notice privacy">
-        <strong>Privacy:</strong> All camera, motion sensor, and location processing stays on your device. Nothing is uploaded to any server.
+        <strong>🔒 Privacy:</strong> Camera, sensors, and location are processed entirely on-device.
       </div>
 
       <button id="start-btn" class="btn-primary" type="button">Start AR Finder</button>
@@ -476,148 +402,171 @@
     </div>
   </section>
 
-  <!-- Main HUD (Section 7.4) -->
+  <!-- ═══ HUD ═══ -->
   <div id="hud" hidden>
+
+    <!-- Top section wrapper -->
     <div>
-      <header class="hud-top">
-        <div class="top-row">
-          <div class="title-group">
-            <span id="app-title">Sun &amp; Moon AR</span>
-            <span class="meta-line">
-              <span id="time-readout">--:--:--</span> ·
-              <span id="loc-readout">Locating…</span>
-            </span>
-          </div>
+      <!-- Top bar: title + compass + ⚙ -->
+      <div id="top-bar">
+        <div class="title-group">
+          <span id="app-title">Sun &amp; Moon AR</span>
+          <span class="meta-line">
+            <span id="time-readout">--:--:--</span> ·
+            <span id="loc-readout">Locating…</span>
+          </span>
+        </div>
+        <div class="top-right">
           <span id="compass-indicator" class="pill ok">Compass OK</span>
+          <button id="settings-btn" class="icon-btn" type="button" title="Settings" aria-label="Settings">⚙</button>
         </div>
+      </div>
 
-        <div class="controls-row">
-          <div class="seg-group" role="group" aria-label="Target selector">
-            <button class="seg-btn" type="button" data-mode="sun">Sun</button>
-            <button class="seg-btn" type="button" data-mode="moon">Moon</button>
-            <button class="seg-btn active" type="button" data-mode="both">Both</button>
-          </div>
-          <button id="calibrate-btn" class="hud-btn" type="button">Calibrate</button>
-          <button id="settings-btn" class="hud-btn" type="button">Settings</button>
-        </div>
-      </header>
+      <!-- Warning chip (compact, non-blocking) -->
+      <div id="warning-chip" hidden>⚠ <span id="warning-text"></span></div>
 
-      <div class="banner-stack">
-        <div id="figure8-banner" class="banner" hidden>
-          <span>Move your phone in a figure 8 to calibrate the compass.</span>
-          <button id="figure8-close" class="btn-secondary" type="button">OK</button>
-        </div>
-
-        <div id="warning-banner" class="banner warn" hidden></div>
-
-        <div id="calibrate-banner" class="banner cal" hidden>
-          <span>Tap the real object on screen:</span>
-          <select id="calibrate-target-select" aria-label="Object to calibrate against">
-            <option value="sun">Sun</option>
-            <option value="moon">Moon</option>
-          </select>
-          <button id="calibrate-cancel" class="btn-secondary" type="button">Cancel</button>
-        </div>
-
-        <div id="manual-sensor-bar" class="manual-bar" hidden>
-          <div class="slider-row">
-            <span>Heading</span>
-            <input id="manual-heading" type="range" min="0" max="359" value="180" />
-            <span id="manual-heading-val">180°</span>
-          </div>
-          <div class="slider-row">
-            <span>Pitch</span>
-            <input id="manual-pitch" type="range" min="-89" max="89" value="20" />
-            <span id="manual-pitch-val">20°</span>
-          </div>
-        </div>
-
-        <pre id="debug-panel" hidden></pre>
+      <!-- Calibrate banner (shown when calibrating) -->
+      <div id="calibrate-banner" hidden>
+        <span>Tap on:</span>
+        <select id="calibrate-target-select" aria-label="Object to calibrate against">
+          <option value="sun">☀ Sun</option>
+          <option value="moon">☾ Moon</option>
+        </select>
+        <button id="calibrate-cancel" class="btn-secondary" type="button">Cancel</button>
       </div>
     </div>
 
-    <footer class="hud-bottom">
-      <div id="guidance-text">Initializing…</div>
-      <div id="target-readout" class="readout-line">Cam — / —</div>
-      <div id="events-readout" class="readout-line">☀ Rise — / Set — • ☾ Rise — / Set —</div>
-      <div class="slider-row">
-        <span id="time-offset-label">Now</span>
-        <input id="time-slider" type="range" min="-720" max="720" step="10" value="0" aria-label="Time offset in minutes" />
-        <button id="time-reset-btn" class="btn-secondary" type="button">Now</button>
-      </div>
-    </footer>
-  </div>
+    <!-- Floating mode pill (positioned via CSS) -->
+    <div id="mode-pill" role="group" aria-label="Target selector">
+      <button class="seg-btn" type="button" data-mode="sun">☀ Sun</button>
+      <button class="seg-btn" type="button" data-mode="moon">☾ Moon</button>
+      <button class="seg-btn active" type="button" data-mode="both">Both</button>
+    </div>
 
-  <!-- Settings Modal -->
+    <!-- Bottom panel -->
+    <div id="bottom-panel">
+      <!-- Manual sensor bar (only when no motion sensors) -->
+      <div id="manual-sensor-bar" hidden>
+        <div class="manual-label">Manual mode — no motion sensors</div>
+        <div class="slider-row">
+          <label>Heading</label>
+          <input id="manual-heading" type="range" min="0" max="359" value="180" />
+          <span id="manual-heading-val" style="min-width:38px;text-align:right">180°</span>
+        </div>
+        <div class="slider-row">
+          <label>Pitch</label>
+          <input id="manual-pitch" type="range" min="-89" max="89" value="20" />
+          <span id="manual-pitch-val" style="min-width:38px;text-align:right">20°</span>
+        </div>
+      </div>
+
+      <!-- Guidance row (always visible) -->
+      <div id="guidance-row">
+        <div id="guidance-text">Initializing…</div>
+        <button id="drawer-toggle" aria-label="Show details" aria-expanded="false">▾</button>
+      </div>
+
+      <!-- Collapsible drawer -->
+      <div id="drawer-content" role="region" aria-label="Details">
+        <div class="drawer-inner">
+          <div id="target-readout" class="readout-line">Cam — / —</div>
+          <div id="events-readout" class="readout-line">☀ Rise — / Set —  •  ☾ Rise — / Set —</div>
+          <div class="slider-row">
+            <label id="time-offset-label" for="time-slider">Now</label>
+            <input id="time-slider" type="range" min="-720" max="720" step="10" value="0" aria-label="Time offset" />
+            <button id="time-reset-btn" class="btn-secondary" type="button">Now</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Debug panel (long-press title) -->
+      <pre id="debug-panel" hidden></pre>
+    </div>
+
+  </div><!-- /#hud -->
+
+  <!-- ═══ SETTINGS SHEET ═══ -->
   <div id="settings-modal" hidden>
-    <div class="modal-card">
+    <div class="modal-sheet">
+      <div class="sheet-handle"></div>
+
       <div class="modal-header">
         <h2>Settings</h2>
         <button id="settings-close" class="btn-secondary" type="button">Done</button>
       </div>
 
-      <div class="setting-block">
-        <div class="slider-row">
-          <label for="fov-slider">Camera FOV (long side)</label>
-          <input id="fov-slider" type="range" min="40" max="90" step="1" value="65" />
-          <span id="fov-val">65°</span>
-        </div>
-        <span id="fov-approx" class="hint-small">Visible FOV ≈ —</span>
-        <span class="hint-small">If markers drift faster than the scene (e.g. ultra-wide lens), adjust this FOV slider.</span>
-      </div>
+      <div class="sheet-body">
 
-      <div class="setting-block">
-        <div class="slider-row">
-          <label for="zoom-slider">Overlay Zoom</label>
-          <input id="zoom-slider" type="range" min="1" max="3" step="0.1" value="1" />
-          <span id="zoom-val">1.0x</span>
+        <!-- Calibrate -->
+        <div class="setting-block">
+          <strong>Tap-to-Calibrate</strong>
+          <span id="cal-status" class="hint-small">No calibration saved (ψ = 0°)</span>
+          <button id="settings-calibrate-btn" type="button">Start Calibration</button>
+          <button id="cal-reset-btn" class="btn-secondary" type="button">Reset calibration</button>
         </div>
-      </div>
 
-      <div class="setting-block">
-        <label class="toggle-row">
-          <span>Show 24h path arc</span>
-          <input id="path-toggle" type="checkbox" checked />
-        </label>
-        <label class="toggle-row">
-          <span>Show true angular size ring (0.53°)</span>
-          <input id="true-ring-toggle" type="checkbox" />
-        </label>
-      </div>
+        <!-- Camera FOV -->
+        <div class="setting-block">
+          <div class="slider-row">
+            <label for="fov-slider">Camera FOV</label>
+            <input id="fov-slider" type="range" min="40" max="90" step="1" value="65" />
+            <span id="fov-val">65°</span>
+          </div>
+          <span id="fov-approx" class="hint-small">Visible FOV ≈ —</span>
+          <span class="hint-small">Adjust if AR markers drift relative to the scene.</span>
+        </div>
 
-      <div class="setting-block">
-        <strong>Tap-to-Calibrate</strong>
-        <span id="cal-status" class="hint-small">No tap calibration saved (ψ = 0°)</span>
-        <button id="cal-reset-btn" class="btn-secondary" type="button">Reset calibration</button>
-      </div>
+        <!-- Overlay zoom -->
+        <div class="setting-block">
+          <div class="slider-row">
+            <label for="zoom-slider">Overlay Zoom</label>
+            <input id="zoom-slider" type="range" min="1" max="3" step="0.1" value="1" />
+            <span id="zoom-val">1.0x</span>
+          </div>
+        </div>
 
-      <div class="setting-block">
-        <strong>Magnetic Declination</strong>
-        <span id="declination-info" class="hint-small">Active declination: 0.00°</span>
-        <div class="input-row">
-          <input id="declination-input" type="number" step="0.1" placeholder="Manual override (°E +, °W -)" />
-          <button id="declination-clear" class="btn-secondary" type="button">Auto WMM</button>
+        <!-- Toggles -->
+        <div class="setting-block">
+          <label class="toggle-row">
+            <span>Show 24h path arc</span>
+            <input id="path-toggle" type="checkbox" checked />
+          </label>
+          <label class="toggle-row">
+            <span>Show true angular size ring (0.53°)</span>
+            <input id="true-ring-toggle" type="checkbox" />
+          </label>
         </div>
-      </div>
 
-      <div class="setting-block">
-        <strong>Location</strong>
-        <div class="input-row">
-          <select id="city-select" aria-label="City preset"></select>
+        <!-- Magnetic Declination -->
+        <div class="setting-block">
+          <strong>Magnetic Declination</strong>
+          <span id="declination-info" class="hint-small">Active: 0.00°</span>
+          <div class="input-row">
+            <input id="declination-input" type="number" step="0.1" placeholder="Manual override (°E +, °W −)" />
+            <button id="declination-clear" class="btn-secondary" type="button">Auto WMM</button>
+          </div>
         </div>
-        <div class="input-row">
-          <input id="manual-lat" type="number" step="0.0001" placeholder="Lat" aria-label="Latitude" />
-          <input id="manual-lon" type="number" step="0.0001" placeholder="Lon" aria-label="Longitude" />
+
+        <!-- Location -->
+        <div class="setting-block">
+          <strong>Location</strong>
+          <div class="input-row">
+            <select id="city-select" aria-label="City preset"></select>
+          </div>
+          <div class="input-row">
+            <input id="manual-lat" type="number" step="0.0001" placeholder="Lat" aria-label="Latitude" />
+            <input id="manual-lon" type="number" step="0.0001" placeholder="Lon" aria-label="Longitude" />
+          </div>
+          <div class="input-row">
+            <button id="apply-loc-btn" class="btn-secondary" type="button">Set Coordinates</button>
+            <button id="use-gps-btn" class="btn-secondary" type="button">Use GPS</button>
+          </div>
         </div>
-        <div class="input-row">
-          <button id="apply-loc-btn" class="btn-secondary" type="button">Set Coordinates</button>
-          <button id="use-gps-btn" class="btn-secondary" type="button">Use GPS</button>
-        </div>
-      </div>
-    </div>
-  </div>
+
+      </div><!-- /.sheet-body -->
+    </div><!-- /.modal-sheet -->
+  </div><!-- /#settings-modal -->
 
   <script type="module" src="./js/main.js"></script>
 </body>
 </html>
-
