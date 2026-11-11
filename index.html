@@ -10,10 +10,10 @@
   <style>
     :root {
       --bg: #0b1020;
-      --panel: rgba(11, 16, 32, 0.80);
+      --panel: rgba(11, 16, 32, 0.72);
       --border: rgba(255, 255, 255, 0.14);
       --text: #f8fafc;
-      --muted: #94a3b8;
+      --muted: #cbd5e1;
       --sun: #ffd54f;
       --moon: #90caf9;
       --danger: #ef4444;
@@ -105,11 +105,11 @@
       cursor: pointer; margin-top: 8px; letter-spacing: 0.01em;
     }
     .btn-secondary {
-      min-height: 40px; padding: 6px 14px;
+      min-height: 36px; padding: 6px 12px;
       border-radius: var(--radius-sm);
       border: 1px solid var(--border);
       background: rgba(30,41,59,0.9);
-      color: var(--text); font-size: 0.88rem; font-weight: 600; cursor: pointer;
+      color: var(--text); font-size: 0.84rem; font-weight: 600; cursor: pointer;
     }
 
     #permission-error {
@@ -128,7 +128,6 @@
       display: flex; flex-direction: column;
       justify-content: space-between;
       padding: env(safe-area-inset-top, 10px) 10px env(safe-area-inset-bottom, 10px);
-      gap: 0;
     }
     #hud[hidden] { display: none; }
 
@@ -138,19 +137,22 @@
       display: flex; align-items: center;
       justify-content: space-between; gap: 8px;
       background: var(--panel);
-      backdrop-filter: blur(12px) saturate(1.4);
+      backdrop-filter: blur(10px) saturate(1.3);
       border: 1px solid var(--border);
       border-radius: var(--radius-md);
-      padding: 8px 10px;
+      padding: 7px 10px;
     }
 
-    .title-group { display: flex; flex-direction: column; gap: 1px; }
+    .title-group { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 
     #app-title {
-      font-weight: 700; font-size: 0.9rem;
+      font-weight: 700; font-size: 0.88rem;
       letter-spacing: -0.01em; user-select: none;
     }
-    .meta-line { font-size: 0.72rem; color: var(--muted); }
+    .meta-line {
+      font-size: 0.7rem; color: var(--muted);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
 
     .top-right {
       display: flex; align-items: center; gap: 6px; flex-shrink: 0;
@@ -164,66 +166,77 @@
     .pill.ok  { background: rgba(34,197,94,0.18);  border-color: rgba(34,197,94,0.45);  color: #bbf7d0; }
     .pill.warn{ background: rgba(245,158,11,0.22); border-color: rgba(245,158,11,0.55); color: #fef3c7; }
 
-    /* icon button */
     .icon-btn {
-      width: 36px; height: 36px;
+      width: 34px; height: 34px;
       display: flex; align-items: center; justify-content: center;
       border: 1px solid var(--border);
       border-radius: var(--radius-sm);
-      background: rgba(255,255,255,0.07);
-      color: var(--text); cursor: pointer; font-size: 1.1rem;
+      background: rgba(255,255,255,0.08);
+      color: var(--text); cursor: pointer; font-size: 1.05rem;
       pointer-events: auto;
     }
-    .icon-btn.active { background: #f59e0b; color: #0b1020; border-color: #fbbf24; }
 
-    /* ── Warning chip (non-blocking, sits below top bar) ── */
+    /* ── Figure-8 calibration banner with countdown timer ── */
+    #figure8-banner {
+      pointer-events: auto;
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      background: var(--panel);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      border-radius: var(--radius-sm);
+      padding: 7px 10px;
+      font-size: 0.78rem; color: #e0f2fe; line-height: 1.3;
+      margin-top: 6px;
+    }
+    #figure8-banner[hidden] { display: none; }
+    .figure8-right {
+      display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+    }
+    #figure8-timer {
+      font-variant-numeric: tabular-nums;
+      font-weight: 700; font-size: 0.75rem;
+      padding: 2px 7px; border-radius: 999px;
+      background: rgba(56, 189, 248, 0.2);
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      color: #bae6fd;
+    }
+    #figure8-close {
+      min-height: 28px; padding: 3px 9px; font-size: 0.75rem;
+    }
+
+    /* ── Warning chip (non-blocking) ── */
     #warning-chip {
       pointer-events: none;
       display: flex; align-items: flex-start; gap: 6px;
-      background: rgba(120,53,15,0.88);
+      background: rgba(120,53,15,0.82);
       border: 1px solid rgba(245,158,11,0.55);
       border-radius: var(--radius-sm);
-      padding: 7px 10px;
-      font-size: 0.78rem; color: #fef3c7; line-height: 1.35;
+      padding: 6px 10px;
+      font-size: 0.75rem; color: #fef3c7; line-height: 1.3;
       margin-top: 6px;
       backdrop-filter: blur(8px);
     }
     #warning-chip[hidden] { display: none; }
 
-    /* ── Calibrate banner (inline, below warning) ── */
-    #calibrate-banner {
-      pointer-events: auto;
-      display: flex; align-items: center; gap: 8px;
-      background: var(--panel);
-      border: 1px solid rgba(251,191,36,0.6);
-      border-radius: var(--radius-sm);
-      padding: 7px 10px;
-      font-size: 0.82rem; margin-top: 6px;
-      backdrop-filter: blur(8px);
-    }
-    #calibrate-banner[hidden] { display: none; }
-    #calibrate-banner select {
-      flex: 1; min-height: 36px; padding: 4px 8px;
-      border-radius: 8px; border: 1px solid var(--border);
-      background: #1e293b; color: var(--text); font-size: 0.85rem;
+    /* ── Bottom stack (Mode pill + compact Footer) ── */
+    #bottom-stack {
+      display: flex; flex-direction: column; gap: 6px;
     }
 
-    /* ── Mode pill (floating center-bottom) ── */
     #mode-pill {
       pointer-events: auto;
-      position: absolute; bottom: calc(env(safe-area-inset-bottom, 10px) + 136px);
-      left: 50%; transform: translateX(-50%);
-      display: inline-flex; gap: 0;
+      align-self: center;
+      display: inline-flex;
       background: var(--panel);
-      backdrop-filter: blur(12px) saturate(1.4);
+      backdrop-filter: blur(10px) saturate(1.3);
       border: 1px solid var(--border);
       border-radius: 999px;
       overflow: hidden;
     }
     .seg-btn {
-      min-height: 40px; padding: 0 16px;
+      min-height: 34px; padding: 0 14px;
       border: none; background: transparent;
-      color: var(--muted); font-size: 0.84rem; font-weight: 600;
+      color: var(--muted); font-size: 0.8rem; font-weight: 600;
       cursor: pointer; transition: color 0.15s, background 0.15s;
     }
     .seg-btn.active {
@@ -232,74 +245,52 @@
     .seg-btn[data-mode="sun"].active  { color: var(--sun); }
     .seg-btn[data-mode="moon"].active { color: var(--moon); }
 
-    /* ── Bottom panel ── */
+    /* ── Compact Footer ── */
     #bottom-panel {
       pointer-events: auto;
       background: var(--panel);
-      backdrop-filter: blur(12px) saturate(1.4);
+      backdrop-filter: blur(10px) saturate(1.3);
       border: 1px solid var(--border);
       border-radius: var(--radius-md);
-      overflow: hidden;
+      padding: 6px 10px;
+      display: flex; flex-direction: column; gap: 2px;
     }
 
-    /* Guidance row — always visible */
-    #guidance-row {
-      padding: 10px 12px 4px;
-      display: flex; align-items: center; justify-content: space-between; gap: 8px;
-    }
-    #guidance-text {
-      flex: 1; font-size: 0.95rem; font-weight: 700; color: #fff;
-      line-height: 1.25;
-    }
-    #drawer-toggle {
-      flex-shrink: 0; width: 32px; height: 32px;
-      display: flex; align-items: center; justify-content: center;
-      border: 1px solid var(--border); border-radius: 8px;
-      background: rgba(255,255,255,0.06); color: var(--muted);
-      cursor: pointer; font-size: 0.8rem;
-      transition: transform 0.25s;
-    }
-    #drawer-toggle.open { transform: rotate(180deg); }
-
-    /* Drawer content */
-    #drawer-content {
-      max-height: 0; overflow: hidden;
-      transition: max-height 0.3s ease;
-    }
-    #drawer-content.open { max-height: 260px; }
-
-    .drawer-inner {
-      padding: 4px 12px 10px;
-      display: flex; flex-direction: column; gap: 6px;
-    }
     .readout-line {
-      font-size: 0.75rem; color: var(--muted); text-align: center;
+      font-size: 0.76rem; line-height: 1.25;
+      color: var(--text); text-align: center;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
+    .readout-line.muted {
+      font-size: 0.72rem; color: var(--muted);
+    }
+
     .slider-row {
       display: flex; align-items: center; gap: 8px; font-size: 0.8rem;
     }
     .slider-row label { color: var(--muted); white-space: nowrap; }
-    .slider-row input[type="range"] { flex: 1; min-height: 36px; }
+    .slider-row input[type="range"] { flex: 1; min-height: 34px; }
     .slider-row .btn-secondary { flex-shrink: 0; }
 
-    /* Manual heading/pitch bar (shown when no motion sensors) */
+    /* Manual heading/pitch bar (only when no motion sensors) */
     #manual-sensor-bar {
-      padding: 6px 12px 10px;
-      border-top: 1px solid var(--border);
-      display: flex; flex-direction: column; gap: 4px;
+      padding-bottom: 4px;
+      margin-bottom: 4px;
+      border-bottom: 1px solid var(--border);
+      display: flex; flex-direction: column; gap: 2px;
     }
     #manual-sensor-bar[hidden] { display: none; }
-    .manual-label { font-size: 0.72rem; color: var(--warn); font-weight: 600; }
+    .manual-label { font-size: 0.7rem; color: var(--warn); font-weight: 600; }
 
     /* Debug panel */
     #debug-panel {
       pointer-events: auto;
       background: rgba(0,0,0,0.88);
       border: 1px solid rgba(255,255,255,0.2);
-      border-radius: 8px; padding: 7px 9px;
+      border-radius: 8px; padding: 6px 8px;
       font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
       font-size: 0.68rem; white-space: pre-wrap; color: #86efac;
-      margin-top: 4px;
+      margin: 4px 0 0;
     }
 
     /* ═══════════════════════════════
@@ -320,7 +311,7 @@
       border: 1px solid var(--border);
       border-radius: var(--radius-lg) var(--radius-lg) 0 0;
       padding: 0 0 24px;
-      display: flex; flex-direction: column; gap: 0;
+      display: flex; flex-direction: column;
     }
 
     .sheet-handle {
@@ -335,7 +326,7 @@
     }
     .modal-header h2 { margin: 0; font-size: 1.1rem; font-weight: 700; }
 
-    .sheet-body { padding: 0 18px; display: flex; flex-direction: column; gap: 0; }
+    .sheet-body { padding: 0 18px; display: flex; flex-direction: column; }
 
     .setting-block {
       border-top: 1px solid var(--border); padding: 12px 0;
@@ -360,18 +351,6 @@
       justify-content: space-between; min-height: 42px; cursor: pointer;
     }
     label.toggle-row input { width: 20px; height: 20px; }
-
-    /* Calibrate button in settings */
-    #settings-calibrate-btn {
-      width: 100%; min-height: 42px;
-      border: 1px solid rgba(251,191,36,0.5);
-      border-radius: var(--radius-sm);
-      background: rgba(251,191,36,0.1);
-      color: #fef3c7; font-size: 0.9rem; font-weight: 600; cursor: pointer;
-    }
-    #settings-calibrate-btn.active {
-      background: rgba(251,191,36,0.25); border-color: #fbbf24;
-    }
   </style>
 </head>
 <body>
@@ -407,7 +386,6 @@
 
     <!-- Top section wrapper -->
     <div>
-      <!-- Top bar: title + compass + ⚙ -->
       <div id="top-bar">
         <div class="title-group">
           <span id="app-title">Sun &amp; Moon AR</span>
@@ -422,65 +400,49 @@
         </div>
       </div>
 
+      <!-- Figure-8 calibration notice with 10s countdown -->
+      <div id="figure8-banner" hidden>
+        <span>Move your phone in a figure 8 to calibrate the compass.</span>
+        <div class="figure8-right">
+          <span id="figure8-timer" aria-live="polite">10s</span>
+          <button id="figure8-close" class="btn-secondary" type="button">OK</button>
+        </div>
+      </div>
+
       <!-- Warning chip (compact, non-blocking) -->
       <div id="warning-chip" hidden>⚠ <span id="warning-text"></span></div>
-
-      <!-- Calibrate banner (shown when calibrating) -->
-      <div id="calibrate-banner" hidden>
-        <span>Tap on:</span>
-        <select id="calibrate-target-select" aria-label="Object to calibrate against">
-          <option value="sun">☀ Sun</option>
-          <option value="moon">☾ Moon</option>
-        </select>
-        <button id="calibrate-cancel" class="btn-secondary" type="button">Cancel</button>
-      </div>
     </div>
 
-    <!-- Floating mode pill (positioned via CSS) -->
-    <div id="mode-pill" role="group" aria-label="Target selector">
-      <button class="seg-btn" type="button" data-mode="sun">☀ Sun</button>
-      <button class="seg-btn" type="button" data-mode="moon">☾ Moon</button>
-      <button class="seg-btn active" type="button" data-mode="both">Both</button>
-    </div>
-
-    <!-- Bottom panel -->
-    <div id="bottom-panel">
-      <!-- Manual sensor bar (only when no motion sensors) -->
-      <div id="manual-sensor-bar" hidden>
-        <div class="manual-label">Manual mode — no motion sensors</div>
-        <div class="slider-row">
-          <label>Heading</label>
-          <input id="manual-heading" type="range" min="0" max="359" value="180" />
-          <span id="manual-heading-val" style="min-width:38px;text-align:right">180°</span>
-        </div>
-        <div class="slider-row">
-          <label>Pitch</label>
-          <input id="manual-pitch" type="range" min="-89" max="89" value="20" />
-          <span id="manual-pitch-val" style="min-width:38px;text-align:right">20°</span>
-        </div>
+    <!-- Bottom stack: floating mode pill + slim footer -->
+    <div id="bottom-stack">
+      <div id="mode-pill" role="group" aria-label="Target selector">
+        <button class="seg-btn" type="button" data-mode="sun">☀ Sun</button>
+        <button class="seg-btn" type="button" data-mode="moon">☾ Moon</button>
+        <button class="seg-btn active" type="button" data-mode="both">Both</button>
       </div>
 
-      <!-- Guidance row (always visible) -->
-      <div id="guidance-row">
-        <div id="guidance-text">Initializing…</div>
-        <button id="drawer-toggle" aria-label="Show details" aria-expanded="false">▾</button>
-      </div>
-
-      <!-- Collapsible drawer -->
-      <div id="drawer-content" role="region" aria-label="Details">
-        <div class="drawer-inner">
-          <div id="target-readout" class="readout-line">Cam — / —</div>
-          <div id="events-readout" class="readout-line">☀ Rise — / Set —  •  ☾ Rise — / Set —</div>
+      <footer id="bottom-panel">
+        <!-- Manual sensor bar (only when no motion sensors) -->
+        <div id="manual-sensor-bar" hidden>
+          <div class="manual-label">Manual mode — no motion sensors</div>
           <div class="slider-row">
-            <label id="time-offset-label" for="time-slider">Now</label>
-            <input id="time-slider" type="range" min="-720" max="720" step="10" value="0" aria-label="Time offset" />
-            <button id="time-reset-btn" class="btn-secondary" type="button">Now</button>
+            <label>Heading</label>
+            <input id="manual-heading" type="range" min="0" max="359" value="180" />
+            <span id="manual-heading-val" style="min-width:36px;text-align:right">180°</span>
+          </div>
+          <div class="slider-row">
+            <label>Pitch</label>
+            <input id="manual-pitch" type="range" min="-89" max="89" value="20" />
+            <span id="manual-pitch-val" style="min-width:36px;text-align:right">20°</span>
           </div>
         </div>
-      </div>
 
-      <!-- Debug panel (long-press title) -->
-      <pre id="debug-panel" hidden></pre>
+        <div id="target-readout" class="readout-line">☀ Alt —  •  ☾ Alt —</div>
+        <div id="events-readout" class="readout-line muted">☀ Rise — / Set —  •  ☾ Rise — / Set —</div>
+
+        <!-- Debug panel (long-press title) -->
+        <pre id="debug-panel" hidden></pre>
+      </footer>
     </div>
 
   </div><!-- /#hud -->
@@ -497,12 +459,14 @@
 
       <div class="sheet-body">
 
-        <!-- Calibrate -->
+        <!-- Time travel -->
         <div class="setting-block">
-          <strong>Tap-to-Calibrate</strong>
-          <span id="cal-status" class="hint-small">No calibration saved (ψ = 0°)</span>
-          <button id="settings-calibrate-btn" type="button">Start Calibration</button>
-          <button id="cal-reset-btn" class="btn-secondary" type="button">Reset calibration</button>
+          <strong>Time Preview</strong>
+          <div class="slider-row">
+            <label id="time-offset-label" for="time-slider">Now</label>
+            <input id="time-slider" type="range" min="-720" max="720" step="10" value="0" aria-label="Time offset" />
+            <button id="time-reset-btn" class="btn-secondary" type="button">Now</button>
+          </div>
         </div>
 
         <!-- Camera FOV -->

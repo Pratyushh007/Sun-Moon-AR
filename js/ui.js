@@ -14,6 +14,8 @@ export const CITIES = [
   { name: 'Equator (0°, 0°)',   lat:  0,       lon:   0      },
 ];
 
+const FIGURE8_DURATION_S = 10;
+
 export function formatOffsetMinutes(min) {
   if (min === 0) return 'Now';
   const sign = min > 0 ? '+' : '-';
@@ -45,27 +47,21 @@ export class UIController {
       compassIndicator:      document.getElementById('compass-indicator'),
       settingsBtn:           document.getElementById('settings-btn'),
 
+      // Figure-8 banner + timer
+      figure8Banner:         document.getElementById('figure8-banner'),
+      figure8Timer:          document.getElementById('figure8-timer'),
+      figure8Close:          document.getElementById('figure8-close'),
+
       // Warning chip
       warningChip:           document.getElementById('warning-chip'),
       warningText:           document.getElementById('warning-text'),
 
-      // Calibrate banner
-      calibrateBanner:       document.getElementById('calibrate-banner'),
-      calibrateTargetSelect: document.getElementById('calibrate-target-select'),
-      calibrateCancel:       document.getElementById('calibrate-cancel'),
-
       // Mode pill
       modeButtons:           document.querySelectorAll('[data-mode]'),
 
-      // Bottom panel
-      guidanceText:          document.getElementById('guidance-text'),
-      drawerToggle:          document.getElementById('drawer-toggle'),
-      drawerContent:         document.getElementById('drawer-content'),
+      // Footer
       targetReadout:         document.getElementById('target-readout'),
       eventsReadout:         document.getElementById('events-readout'),
-      timeSlider:            document.getElementById('time-slider'),
-      timeOffsetLabel:       document.getElementById('time-offset-label'),
-      timeResetBtn:          document.getElementById('time-reset-btn'),
 
       // Manual sensor bar
       manualSensorBar:       document.getElementById('manual-sensor-bar'),
@@ -80,7 +76,9 @@ export class UIController {
       // Settings modal
       settingsModal:         document.getElementById('settings-modal'),
       settingsClose:         document.getElementById('settings-close'),
-      settingsCalibrateBtn:  document.getElementById('settings-calibrate-btn'),
+      timeSlider:            document.getElementById('time-slider'),
+      timeOffsetLabel:       document.getElementById('time-offset-label'),
+      timeResetBtn:          document.getElementById('time-reset-btn'),
       fovSlider:             document.getElementById('fov-slider'),
       fovVal:                document.getElementById('fov-val'),
       fovApprox:             document.getElementById('fov-approx'),
@@ -91,8 +89,6 @@ export class UIController {
       declinationInput:      document.getElementById('declination-input'),
       declinationClear:      document.getElementById('declination-clear'),
       declinationInfo:       document.getElementById('declination-info'),
-      calStatus:             document.getElementById('cal-status'),
-      calResetBtn:           document.getElementById('cal-reset-btn'),
       citySelect:            document.getElementById('city-select'),
       manualLat:             document.getElementById('manual-lat'),
       manualLon:             document.getElementById('manual-lon'),
@@ -100,15 +96,13 @@ export class UIController {
       useGpsBtn:             document.getElementById('use-gps-btn'),
     };
 
-    this._lastGuidanceUpdate = 0;
-    this._lastGuidanceValues = { sun: '', moon: '' };
-    this._drawerOpen = false;
+    this._lastFooterUpdate = 0;
+    this._figure8Interval = null;
 
     this._bindEvents();
     this._populateCities();
   }
 
-  // ── City list ─────────────────────────────────────────
   _populateCities() {
     const sel = this.el.citySelect;
     sel.innerHTML = '<option value="">— Choose a city —</option>';
@@ -120,7 +114,6 @@ export class UIController {
     }
   }
 
-  // ── Event bindings ────────────────────────────────────
   _bindEvents() {
     // Landing
     this.el.startBtn.addEventListener('click', () => this.handlers.onStart());
@@ -131,37 +124,19 @@ export class UIController {
       btn.addEventListener('click', () => {
         const mode = btn.getAttribute('data-mode');
         this.setActiveMode(mode);
+        this._lastFooterUpdate = 0;
         this.handlers.onModeChange(mode);
       });
     });
 
-    // Calibrate (banner cancel)
-    this.el.calibrateCancel.addEventListener('click', () =>
-      this.handlers.onToggleCalibrate(false)
-    );
-    this.el.calibrateTargetSelect.addEventListener('change', (e) =>
-      this.handlers.onCalibrateTargetChange(e.target.value)
-    );
-
-    // Calibrate button in settings sheet
-    this.el.settingsCalibrateBtn.addEventListener('click', () => {
-      this.toggleSettings(false);
-      this.handlers.onToggleCalibrate();
-    });
+    // Figure-8 dismiss
+    this.el.figure8Close.addEventListener('click', () => this._hideFigure8Banner());
 
     // Settings sheet
     this.el.settingsBtn.addEventListener('click', () => this.toggleSettings(true));
     this.el.settingsClose.addEventListener('click', () => this.toggleSettings(false));
     this.el.settingsModal.addEventListener('click', (e) => {
       if (e.target === this.el.settingsModal) this.toggleSettings(false);
-    });
-
-    // Drawer toggle
-    this.el.drawerToggle.addEventListener('click', () => {
-      this._drawerOpen = !this._drawerOpen;
-      this.el.drawerContent.classList.toggle('open', this._drawerOpen);
-      this.el.drawerToggle.classList.toggle('open', this._drawerOpen);
-      this.el.drawerToggle.setAttribute('aria-expanded', String(this._drawerOpen));
     });
 
     // Time slider
@@ -207,11 +182,6 @@ export class UIController {
       this.el.declinationInput.value = '';
       this.handlers.onManualDeclination(null);
     });
-
-    // Calibration reset
-    this.el.calResetBtn.addEventListener('click', () =>
-      this.handlers.onResetCalibration()
-    );
 
     // City preset
     this.el.citySelect.addEventListener('change', (e) => {
@@ -265,6 +235,30 @@ export class UIController {
     this.el.appTitle.addEventListener('pointerleave',  cancelPress);
   }
 
+  _hideFigure8Banner() {
+    if (this._figure8Interval !== null) {
+      clearInterval(this._figure8Interval);
+      this._figure8Interval = null;
+    }
+    this.el.figure8Banner.hidden = true;
+  }
+
+  _startFigure8Countdown() {
+    this._hideFigure8Banner();
+    let remaining = FIGURE8_DURATION_S;
+    this.el.figure8Timer.textContent = `${remaining}s`;
+    this.el.figure8Banner.hidden = false;
+
+    this._figure8Interval = setInterval(() => {
+      remaining -= 1;
+      if (remaining <= 0) {
+        this._hideFigure8Banner();
+        return;
+      }
+      this.el.figure8Timer.textContent = `${remaining}s`;
+    }, 1000);
+  }
+
   // ── Public API ────────────────────────────────────────
 
   showPermissionError(msg) {
@@ -278,19 +272,13 @@ export class UIController {
   enterMainView() {
     this.el.landing.hidden = true;
     this.el.hud.hidden = false;
+    this._startFigure8Countdown();
   }
 
   setActiveMode(mode) {
     this.el.modeButtons.forEach((btn) => {
       btn.classList.toggle('active', btn.getAttribute('data-mode') === mode);
     });
-  }
-
-  setCalibrateMode(active, targetKind) {
-    this.el.settingsCalibrateBtn.classList.toggle('active', active);
-    this.el.settingsCalibrateBtn.textContent = active ? 'Calibrating — tap the object…' : 'Start Calibration';
-    this.el.calibrateBanner.hidden = !active;
-    if (targetKind) this.el.calibrateTargetSelect.value = targetKind;
   }
 
   toggleSettings(show) {
@@ -340,49 +328,45 @@ export class UIController {
       this.el.compassIndicator.textContent = `Jitter ${jitterDeg.toFixed(1)}°`;
       this.el.compassIndicator.className = 'pill warn';
     } else {
-      this.el.compassIndicator.textContent = `Compass OK`;
+      this.el.compassIndicator.textContent = 'Compass OK';
       this.el.compassIndicator.className = 'pill ok';
     }
   }
 
-  updateGuidanceText(mode, sunGuide, moonGuide, targets, hp, events, nowMs) {
-    // Max 5 Hz update
-    if (nowMs - this._lastGuidanceUpdate < 200) return;
-    this._lastGuidanceUpdate = nowMs;
+  updateFooter(mode, targets, events, nowMs) {
+    if (nowMs - this._lastFooterUpdate < 200) return;
+    this._lastFooterUpdate = nowMs;
 
-    const lines = [];
-    if (mode === 'sun'  || mode === 'both') lines.push(`☀ ${sunGuide.text}`);
-    if (mode === 'moon' || mode === 'both') lines.push(`☾ ${moonGuide.text}`);
-    this.el.guidanceText.textContent = lines.join('  |  ');
-
-    // Detailed readout (only rendered if drawer is open)
-    const camH = hp.headingCam !== null ? `${hp.headingCam.toFixed(0)}°` : '—';
-    const camP = `${hp.pitchCam.toFixed(0)}°`;
-    const parts = [`Cam ${camH} / ${camP}`];
+    const altParts = [];
     if (mode === 'sun' || mode === 'both') {
-      parts.push(`Sun Az ${targets.sun.azTrue.toFixed(1)}° Alt ${targets.sun.altApparent.toFixed(1)}°`);
+      altParts.push(`☀ Alt ${targets.sun.altApparent.toFixed(1)}°`);
     }
     if (mode === 'moon' || mode === 'both') {
-      const pct = Math.round(targets.moon.fraction * 100);
-      parts.push(`Moon Az ${targets.moon.azTrue.toFixed(1)}° Alt ${targets.moon.alt.toFixed(1)}° (${pct}%)`);
+      altParts.push(`☾ Alt ${targets.moon.alt.toFixed(1)}°`);
     }
-    this.el.targetReadout.textContent = parts.join(' • ');
+    this.el.targetReadout.textContent = altParts.join('  •  ');
 
     if (events) {
-      const sr = formatTimeHHMM(events.sunrise)  || '—';
-      const ss = formatTimeHHMM(events.sunset)   || '—';
-      const mr = events.moonAlwaysUp   ? 'Always up'   :
-                 events.moonAlwaysDown ? 'Always down'  :
-                 formatTimeHHMM(events.moonrise)  || '—';
-      const ms = events.moonAlwaysUp   ? 'Always up'   :
-                 events.moonAlwaysDown ? 'Always down'  :
-                 formatTimeHHMM(events.moonset)   || '—';
-      this.el.eventsReadout.textContent =
-        `☀ Rise ${sr} / Set ${ss}  •  ☾ Rise ${mr} / Set ${ms}`;
+      const eventParts = [];
+      if (mode === 'sun' || mode === 'both') {
+        const sr = formatTimeHHMM(events.sunrise) || '—';
+        const ss = formatTimeHHMM(events.sunset)  || '—';
+        eventParts.push(`☀ Rise ${sr} / Set ${ss}`);
+      }
+      if (mode === 'moon' || mode === 'both') {
+        const mr = events.moonAlwaysUp   ? 'Up' :
+                   events.moonAlwaysDown ? 'Down' :
+                   formatTimeHHMM(events.moonrise) || '—';
+        const ms = events.moonAlwaysUp   ? 'Up' :
+                   events.moonAlwaysDown ? 'Down' :
+                   formatTimeHHMM(events.moonset)  || '—';
+        eventParts.push(`☾ Rise ${mr} / Set ${ms}`);
+      }
+      this.el.eventsReadout.textContent = eventParts.join('  •  ');
     }
   }
 
-  updateSettingsReadout({ fov, hFov, vFov, decl, calRecord, stale }) {
+  updateSettingsReadout({ fov, hFov, vFov, decl }) {
     this.el.fovSlider.value = String(fov);
     this.el.fovVal.textContent = `${fov}°`;
     if (hFov && vFov) {
@@ -393,16 +377,9 @@ export class UIController {
       this.el.declinationInfo.textContent =
         `Active: ${decl.deg.toFixed(2)}° (${decl.source})`;
     }
-    if (calRecord) {
-      const ageMin = Math.round((Date.now() - calRecord.timestamp) / 60000);
-      this.el.calStatus.textContent =
-        `Offset ψ = ${calRecord.psi.toFixed(1)}° (${ageMin}m ago)${stale ? ' — STALE' : ''}`;
-    } else {
-      this.el.calStatus.textContent = 'No calibration saved (ψ = 0°)';
-    }
   }
 
-  updateDebugPanel(raw, hp, targets, psiDeg, fPx) {
+  updateDebugPanel(raw, hp, targets, fPx) {
     if (this.el.debugPanel.hidden) return;
     const fmt = (v) => (typeof v === 'number' ? v.toFixed(2) : '—');
     const tSun = targets.sun.vec;
@@ -410,7 +387,7 @@ export class UIController {
       `src: ${raw.source} | scr: ${raw.screenAngle}° | fPx: ${fPx.toFixed(1)}\n` +
       `raw a/b/g: ${fmt(raw.alpha)} / ${fmt(raw.beta)} / ${fmt(raw.gamma)}\n` +
       `webkitH: ${fmt(raw.webkitCompassHeading)} | abs: ${raw.absolute}\n` +
-      `cam H/P: ${fmt(hp.headingCam)}° / ${fmt(hp.pitchCam)}° | ψ: ${psiDeg.toFixed(2)}°\n` +
+      `cam H/P: ${fmt(hp.headingCam)}° / ${fmt(hp.pitchCam)}°\n` +
       `sun t(ENU): (${tSun.x.toFixed(3)}, ${tSun.y.toFixed(3)}, ${tSun.z.toFixed(3)})`;
   }
 }

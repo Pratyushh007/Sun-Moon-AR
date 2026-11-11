@@ -10,18 +10,11 @@ import {
   project,
 } from './projection.js';
 import {
-  computeTapObservation,
-  computeYawCorrection,
   haversineKm,
-  isStale,
-  load as loadCalibration,
   loadFov,
-  reset as resetCalibration,
-  save as saveCalibration,
   saveFov,
 } from './calibration.js';
 import {
-  drawCalibrateReticle,
   drawPathArc,
   drawTargetMarker,
 } from './overlay.js';
@@ -33,7 +26,6 @@ const DEFAULT_FOV_LONG = 65;
 const SMOOTHING_TAU_S = 0.11;
 const ARROW_INSET_PX = 40;
 const ICON_RADIUS_PX = 22;
-const DEFAULT_CALIBRATION_PSI = 0;
 const LOCKED_THRESHOLD_DEG = 3;
 const DEADZONE_DEG = 0.2;
 const PATH_STEP_MIN = 10;
@@ -46,8 +38,6 @@ const ctx = canvas.getContext('2d');
 const state = {
   started: false,
   mode: 'both', // 'sun' | 'moon' | 'both'
-  calibrating: false,
-  calibrateTarget: 'sun',
   timeOffsetMin: 0,
   fovLong: loadFov(DEFAULT_FOV_LONG),
   userZoom: 1,
@@ -56,8 +46,6 @@ const state = {
   manualDeclinationDeg: null,
   declination: { deg: 0, source: 'default' },
   location: { lat: 26.8467, lon: 80.9462, label: 'Default', isDefault: true },
-  calRecord: loadCalibration(),
-  psiDeg: DEFAULT_CALIBRATION_PSI,
   qSmooth: null,
   lastFrameMs: 0,
   lastEphemerisMs: 0,
@@ -68,16 +56,10 @@ const state = {
   paths: { sun: [], moon: [] },
   stableHeading: null,
   stablePitch: null,
-  latestBasisSmooth: null,
   latestFPx: 800,
   latestSize: { W: 1, H: 1 },
   orientationWarning: '',
-  altitudeHintWarning: '',
 };
-
-if (state.calRecord) {
-  state.psiDeg = state.calRecord.psi;
-}
 
 const sensors = new SensorManager({
   onOrientationWarning(msg) {
@@ -132,22 +114,6 @@ const ui = new UIController({
   },
   onModeChange(mode) {
     state.mode = mode;
-    if (mode === 'sun' || mode === 'moon') {
-      state.calibrateTarget = mode;
-      if (state.calibrating) {
-        ui.setCalibrateMode(true, state.calibrateTarget);
-      }
-    }
-  },
-  onToggleCalibrate(force) {
-    state.calibrating = typeof force === 'boolean' ? force : !state.calibrating;
-    if (state.mode === 'sun' || state.mode === 'moon') {
-      state.calibrateTarget = state.mode;
-    }
-    ui.setCalibrateMode(state.calibrating, state.calibrateTarget);
-  },
-  onCalibrateTargetChange(kind) {
-    state.calibrateTarget = kind;
   },
   onTimeOffsetChange(min) {
     state.timeOffsetMin = min;
@@ -156,8 +122,6 @@ const ui = new UIController({
   onFovChange(fov) {
     state.fovLong = fov;
     saveFov(fov);
-    state.altitudeHintWarning = '';
-    refreshWarningBanner();
   },
   onZoomChange(z) {
     state.userZoom = z;
@@ -172,14 +136,6 @@ const ui = new UIController({
   onManualDeclination(val) {
     state.manualDeclinationDeg = val;
     updateEphemeris(true);
-  },
-  onResetCalibration() {
-    resetCalibration();
-    state.calRecord = null;
-    state.psiDeg = DEFAULT_CALIBRATION_PSI;
-    state.altitudeHintWarning = '';
-    refreshWarningBanner();
-    updateSettingsDisplay();
   },
   onManualLocation(lat, lon, label) {
     state.location = { lat, lon, label, isDefault: false };
@@ -213,12 +169,6 @@ function refreshWarningBanner() {
   }
   if (state.orientationWarning) {
     msgs.push(state.orientationWarning);
-  }
-  if (state.calRecord && isStale(state.calRecord, state.location.lat, state.location.lon)) {
-    msgs.push('Tap calibration is stale (>15 min or >1 km moved); recalibrate or reset.');
-  }
-  if (state.altitudeHintWarning) {
-    msgs.push(state.altitudeHintWarning);
   }
   ui.setWarning(msgs.join(' '));
 }
@@ -280,62 +230,13 @@ function updateEphemeris(force = false) {
 function updateSettingsDisplay() {
   const { W, H } = state.latestSize;
   const { hFov, vFov } = approxFovDeg(W, H, state.latestFPx);
-  const stale = state.calRecord
-    ? isStale(state.calRecord, state.location.lat, state.location.lon)
-    : false;
   ui.updateSettingsReadout({
     fov: state.fovLong,
     hFov,
     vFov,
     decl: state.declination,
-    calRecord: state.calRecord,
-    stale,
   });
 }
-
-canvas.addEventListener('click', (e) => {
-  if (!state.calibrating || !state.latestBasisSmooth || !state.targets) return;
-
-  const rect = canvas.getBoundingClientRect();
-  const px = e.clientX - rect.left;
-  const py = e.clientY - rect.top;
-  const { W, H } = state.latestSize;
-
-  const kind =
-    state.mode === 'sun'
-      ? 'sun'
-      : state.mode === 'moon'
-        ? 'moon'
-        : state.calibrateTarget;
-  const target = kind === 'moon' ? state.targets.moon : state.targets.sun;
-  const altPred = kind === 'moon' ? target.alt : target.altApparent;
-
-  const obs = computeTapObservation(px, py, state.latestBasisSmooth, state.latestFPx, W, H);
-  const psi = computeYawCorrection(
-    px,
-    py,
-    state.latestBasisSmooth,
-    state.latestFPx,
-    W,
-    H,
-    target.azSensor
-  );
-
-  state.psiDeg = psi;
-  state.calRecord = saveCalibration(psi, state.location.lat, state.location.lon);
-  state.calibrating = false;
-  ui.setCalibrateMode(false);
-
-  if (Math.abs(obs.altObs - altPred) > 3) {
-    state.altitudeHintWarning =
-      'Tapped altitude differs by >3° — consider adjusting FOV in Settings.';
-  } else {
-    state.altitudeHintWarning = '';
-  }
-
-  refreshWarningBanner();
-  updateSettingsDisplay();
-});
 
 let rafId = null;
 
@@ -383,14 +284,7 @@ function renderFrame(nowMs) {
     state.qSmooth = quat.slerp(state.qSmooth, qNew, alphaS);
   }
   const R_smooth = mat3.fromQuaternion(state.qSmooth);
-  state.latestBasisSmooth = cameraBasis(R_smooth);
-
-  // Apply tap-to-calibrate yaw offset (Section 5.10)
-  const R_final =
-    state.psiDeg !== 0
-      ? mat3.mul(mat3.Rz(angles.rad(state.psiDeg)), R_smooth)
-      : R_smooth;
-  const basis = cameraBasis(R_final);
+  const basis = cameraBasis(R_smooth);
   const hp = cameraHeadingPitch(basis);
 
   // Deadzone on heading/pitch for guidance text stability (Section 5.9)
@@ -495,13 +389,9 @@ function renderFrame(nowMs) {
     });
   }
 
-  if (state.calibrating) {
-    drawCalibrateReticle(ctx, W, H);
-  }
-
   ui.updateCompassIndicator(sensors.getHeadingJitterDeg(), sensors.manualMode);
-  ui.updateGuidanceText(state.mode, sunGuide, moonGuide, targets, hp, state.events, nowMs);
-  ui.updateDebugPanel(sensors.raw, hp, targets, state.psiDeg, fPx);
+  ui.updateFooter(state.mode, targets, state.events, nowMs);
+  ui.updateDebugPanel(sensors.raw, hp, targets, fPx);
 }
 
 document.addEventListener('visibilitychange', () => {
